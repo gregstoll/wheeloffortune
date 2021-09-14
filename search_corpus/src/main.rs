@@ -154,6 +154,8 @@ mod tests {
         assert!(result.len() > 3);
         for i in 0..result.len() {
             assert_eq!(4, result[i]["word"].to_string().len());
+            assert_eq!('t', result[i]["word"].to_string().chars().nth(0).unwrap());
+            assert_ne!("this", result[i]["word"].to_string());
             let this_frequency = result[i]["frequency"].as_u64().unwrap();
             assert!(last_value >= this_frequency);
             last_value = this_frequency;
