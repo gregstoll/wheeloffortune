@@ -5,8 +5,19 @@ type WordFrequency = HashMap<String, u64>;
 
 fn main() -> Result<()> {
     println!("Hello, world!");
-    let freq = parse_file("../data/raw/1-00006-of-00014")?;
+    let mut freq = WordFrequency::new();
+    //for i in 0..=14 {
+    for i in 0..=10 {
+        let path = format!("../data/raw/1-{:05}-of-00014", i);
+        println!("parsing file #{}, have {} entries so far...", i, freq.len());
+        parse_file(&path, &mut freq)?;
+    }
+    let mut entries = freq.iter().collect::<Vec<_>>();
     println!("got {:?} words", freq.len());
+    entries.sort_by(|a, b| b.1.cmp(a.1));
+    for i in 0..10 {
+        println!("{:?}", entries[i]);
+    }
     
     Ok(())
 }
@@ -34,8 +45,17 @@ fn parse_line(line: &str, freq: &mut WordFrequency) -> Result<()> {
             word
         };
     let word = word.to_ascii_lowercase();
-    // TODO - count
-    freq.entry(word).and_modify(|e| *e += 1).or_insert(1);
+    let mut count = 0;
+    for entry in parts {
+        // each entry is "<year>,<match count>,<volume count>"
+        let mut entry_parts = entry.split(',');
+        // TODO - only count stuff since 1920 or something?
+        let _year = entry_parts.next().ok_or_else(|| anyhow!("no year in entry"))?;
+        let entry_count = entry_parts.next().ok_or_else(|| anyhow!("no count in entry"))?;
+        let entry_count = entry_count.parse::<u64>().map_err(|e| anyhow!("couldn't parse count: {}", e))?;
+        count += entry_count;
+    }
+    freq.entry(word).and_modify(|e| *e += count).or_insert(count);
     Ok(())
 }
 
@@ -50,15 +70,14 @@ fn trim_part_of_speech(word: &str) -> &str {
     return word;
 }
 
-fn parse_file(path: &str) -> Result<WordFrequency> {
-    let mut freq = WordFrequency::new();
+fn parse_file(path: &str, freq: &mut WordFrequency) -> Result<()> {
     let lines = read_lines(path)?;
     for line in lines {
         let line = line?;
-        parse_line(&line, &mut freq)?;
+        parse_line(&line, freq)?;
     }
 
-    Ok(freq)
+    Ok(())
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
