@@ -64,7 +64,11 @@ fn validate_pattern(pattern: &str) -> Result<(), String> {
 }
 
 fn validate_absent_letters(absent_letters: &str) -> Result<(), String> {
-    // TODO - just alphabetic characters, etc.
+    // TODO - more validation?
+    if absent_letters.chars().any(|c| !c.is_ascii_alphabetic()) {
+        return Err("Disallowed characters in absent_letters".to_string());
+    }
+
     Ok(())
 }
 
@@ -154,6 +158,20 @@ mod tests {
             last_value = this_frequency;
         }
     }
+
+    #[test]
+    fn test_giant_set_of_results_right_length_and_descending_frequency() {
+        let result = process_query_string("pattern=?????&absent_letters=hx").unwrap();
+        let mut last_value: u64 = 1000000000000;
+        assert!(result.len() > 3);
+        for i in 0..result.len() {
+            assert_eq!(5, result[i]["word"].to_string().len());
+            let this_frequency = result[i]["frequency"].as_u64().unwrap();
+            assert!(last_value >= this_frequency);
+            last_value = this_frequency;
+        }
+    }
+
 
 }
 
