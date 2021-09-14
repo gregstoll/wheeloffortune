@@ -163,6 +163,17 @@ mod tests {
     }
 
     #[test]
+    fn test_all_results_right_length_with_missing_first_letter() {
+        let result = process_query_string("pattern=??i?&absent_letters=h").unwrap();
+        assert!(result.len() > 3);
+        for i in 0..result.len() {
+            assert_eq!(4, result[i]["word"].to_string().len());
+            assert_eq!('i', result[i]["word"].to_string().chars().nth(2).unwrap());
+            assert_ne!("this", result[i]["word"].to_string());
+        }
+    }
+
+    #[test]
     fn test_giant_set_of_results_right_length_and_descending_frequency() {
         let result = process_query_string("pattern=?????&absent_letters=hx").unwrap();
         let mut last_value: u64 = 1000000000000;
