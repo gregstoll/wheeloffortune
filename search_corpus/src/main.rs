@@ -59,12 +59,13 @@ fn validate_pattern(pattern: &str) -> Result<(), String> {
     if pattern.chars().any(|c| !is_allowed_char(c)) {
         return Err("Disallowed characters in pattern".to_string());
     }
-    // TODO - more validation, like number of real letters or something?
+    if pattern.len() > 20 {
+        return Err("Pattern too long".to_string());
+    }
     Ok(())
 }
 
 fn validate_absent_letters(absent_letters: &str) -> Result<(), String> {
-    // TODO - more validation?
     if absent_letters.chars().any(|c| !c.is_ascii_alphabetic()) {
         return Err("Disallowed characters in absent_letters".to_string());
     }
@@ -172,6 +173,12 @@ mod tests {
         }
     }
 
-
+    #[test]
+    fn test_pattern_too_long() {
+        let too_long = ".".repeat(21);
+        let query = format!("pattern={}&absent_letters=h", too_long);
+        let result = process_query_string(&query);
+        assert!(!result.is_ok());
+    }
 }
 
