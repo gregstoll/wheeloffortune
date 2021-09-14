@@ -1,13 +1,14 @@
-use std::{collections::HashMap, fs::File, io::{self, BufRead}, path::Path};
+use std::{collections::HashMap, fs::File, io::{self, BufRead, Write}, path::Path};
 use anyhow::{anyhow, Result};
 
 type WordFrequency = HashMap<String, u64>;
 
+const FREQUENCY_CUTOFF: u64 = 10000;
+
 fn main() -> Result<()> {
     println!("Hello, world!");
     let mut freq = WordFrequency::new();
-    //for i in 0..=14 {
-    for i in 0..=10 {
+    for i in 0..=13 {
         let path = format!("../data/raw/1-{:05}-of-00014", i);
         println!("parsing file #{}, have {} entries so far...", i, freq.len());
         parse_file(&path, &mut freq)?;
@@ -15,15 +16,24 @@ fn main() -> Result<()> {
     let mut entries = freq.iter().collect::<Vec<_>>();
     println!("got {:?} words", freq.len());
     entries.sort_by(|a, b| b.1.cmp(a.1));
-    for i in 0..10 {
+    for i in 0..25 {
         println!("{:?}", entries[i]);
     }
-    
+    let mut file = File::create("../data/processed/word_frequency.txt")?;
+    // There are lots of incredibly rare words, as well as a ton of typos (where
+    // presumably the OCR was wrong) at low frequencies. On inspection, we're not
+    // losing anything valuable if we cut off at 10000, and it reduces false positives
+    // and file size.
+    for entry in entries {
+        if *(entry.1) >= FREQUENCY_CUTOFF {
+            writeln!(file, "{} {}", entry.0, entry.1)?;
+        }
+    }
     Ok(())
 }
 
 fn is_allowed_char(c: char) -> bool {
-    c.is_ascii_alphabetic() || c == '\'' || c == '_'
+    c.is_ascii_alphabetic() || c == '\'' || c == '_' || c == '-'
 }
 
 fn parse_line(line: &str, freq: &mut WordFrequency) -> Result<()> {
