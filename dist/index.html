@@ -6,6 +6,9 @@
     <link rel="canonical" href="https://gregstoll.com/wheeloffortune" />
     <title>Wheel of Fortune Solver</title>
     <style>
+      td.frequency {
+        text-align: right;
+      }
     </style>
     <!--#include virtual="/bootstraphead.html"-->
   </head>
@@ -19,9 +22,10 @@
         <p><label for="absent_letters">Absent letters:</label><input type="text" id="absent_letters"></p>
         <p><input type="button" name="search" id="search" value="Search"></p>
         <div id="results">
+          <h2>Best letters to guess</h2>
+          <div id="best_letters_to_guess"></div>
           <h2>Possible words</h2>
-          <ul id="possible_word_list">
-          </ul>
+          <div id="possible_word_list"></div>
         </div>
     <p><a href="#about">About this project</a></p>
     <p>TODO</p>
