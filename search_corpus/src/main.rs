@@ -173,6 +173,13 @@ mod tests {
     }
 
     #[test]
+    fn test_no_reuse_letters_in_pattern() {
+        let result = process_query_string("pattern=t?e?&absent_letters=").unwrap();
+        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        assert!(!words.contains(&"tree".to_string()));
+    }
+
+    #[test]
     fn test_apostrophe() {
         let result = process_query_string("pattern=c??'t&absent_letters=").unwrap();
         let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
