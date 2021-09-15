@@ -77,8 +77,18 @@ fn error(s: &str) -> cgi::Response {
     cgi::binary_response(200, "application/json", (json::object!{"error": s.clone()}).dump().as_bytes().to_vec())
 }
 
+fn json_response_cross_origin(body: Vec<u8>) -> cgi::Response {
+    let mut response = cgi::http::response::Builder::new()
+        .status(200)
+        .header(cgi::http::header::CONTENT_LENGTH, format!("{}", body.len()).as_str());
+    response = response.header(cgi::http::header::CONTENT_TYPE, "application/json");
+    response = response.header(cgi::http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+
+    response.body(body).unwrap()
+}
+
 fn success(s: json::JsonValue) -> cgi::Response {
-    cgi::binary_response(200, "application/json", s.dump().as_bytes().to_vec())
+    json_response_cross_origin(s.dump().as_bytes().to_vec())
 }
 
 // https://doc.rust-lang.org/stable/rust-by-example/std_misc/file/read_lines.html
