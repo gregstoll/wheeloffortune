@@ -38,7 +38,7 @@ fn build_regex(pattern: &str, absent_letters: &str) -> Result<Regex, String> {
             absent_letter_set.insert(letter.to_ascii_lowercase());
         }
     }
-    let mut absent_letter_builder = "[^".to_string();
+    let mut absent_letter_builder = "[^-'".to_string();
     for absent_letter in absent_letter_set {
         absent_letter_builder.push(absent_letter);
     }
@@ -160,6 +160,34 @@ mod tests {
             assert!(last_value >= this_frequency);
             last_value = this_frequency;
         }
+    }
+
+    #[test]
+    fn test_apostrophe() {
+        let result = process_query_string("pattern=c??'t&absent_letters=").unwrap();
+        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        assert!(words.contains(&"can't".to_string()));
+    }
+
+    #[test]
+    fn test_apostrophe_not_filled_in() {
+        let result = process_query_string("pattern=d???t&absent_letters=h").unwrap();
+        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        assert!(!words.contains(&"don't".to_string()));
+    }
+
+    #[test]
+    fn test_dash() {
+        let result = process_query_string("pattern=n?n-?e??er&absent_letters=t").unwrap();
+        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        assert!(words.contains(&"non-ledger".to_string()));
+    }
+
+    #[test]
+    fn test_dash_not_filled_in() {
+        let result = process_query_string("pattern=n?n??e??er&absent_letters=t").unwrap();
+        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        assert!(!words.contains(&"non-ledger".to_string()));
     }
 
     #[test]
