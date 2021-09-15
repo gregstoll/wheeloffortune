@@ -36,9 +36,10 @@
             let row = document.createElement("tr");
             let word_td = document.createElement("td");
             word_td.appendChild(document.createTextNode(result.word));
-            for (let pattern_char of result.word) {
-                if (letter_frequency.has(pattern_char)) {
-                    letter_frequency.set(pattern_char, letter_frequency.get(pattern_char) + result.frequency);
+            let letters_in_word = new Set<string>(result.word);
+            for (let letter of Array.from(letters_in_word)) {
+                if (letter_frequency.has(letter)) {
+                    letter_frequency.set(letter, letter_frequency.get(letter) + result.frequency);
                 }
             }
             let freq_td = document.createElement("td");
