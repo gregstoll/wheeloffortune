@@ -15,6 +15,14 @@
         <div style="width: 100%; text-align: center;">
             <h1 style="display: inline-block;">Wheel of Fortune Solver</h1>
         </div>
+        <p><label for="pattern">Pattern:</label><input type="text" id="pattern"></p>
+        <p><label for="absent_letters">Absent letters:</label><input type="text" id="absent_letters"></p>
+        <p><input type="button" name="search" id="search" value="Search"></p>
+        <div id="results">
+          <h2>Possible words</h2>
+          <ul id="possible_word_list">
+          </ul>
+        </div>
     <p><a href="#about">About this project</a></p>
     <p>TODO</p>
     <script type="text/javascript" src="dist/app.bundle.js"></script>
