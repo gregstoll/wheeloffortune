@@ -6,7 +6,7 @@
   "homepage": "https://github.com/gregstoll/wheeloffortune#readme",
   "scripts": {
     "start": "webpack-dev-server --open",
-    "build": "webpack -p --config webpack.prod.config.js --hide-modules && node replaceSsiTags.js",
+    "build": "webpack -p --config webpack.prod.config.js --hide-modules && node replaceSsiTags.js && chmod +x dist/search_corpus.cgi",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
