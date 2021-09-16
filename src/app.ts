@@ -14,7 +14,13 @@
         const json = await response.json();
         let word_list = document.getElementById("possible_word_list");
         let best_letters_to_guess = document.getElementById("best_letters_to_guess");
-        // TODO - handle error
+        if (json.error) {
+            console.error(`Error from script: ${json.error}`);
+            const error_text = `<span style=\"color: red;\">Error: ${json.error}</span>`;
+            word_list.innerHTML = error_text;
+            best_letters_to_guess.innerHTML = error_text;
+            return;
+        }
         if (json.length === 0) {
             word_list.innerHTML = "No words found";
             best_letters_to_guess.innerHTML = "No words found";
