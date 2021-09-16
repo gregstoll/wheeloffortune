@@ -9,43 +9,24 @@
         return SCRIPT_NAME;
     }
 
-    function getMoreLettersRowStyle(): CSSStyleRule {
+    function getRowStyle(className: string): CSSStyleRule {
         const stylesheet = document.styleSheets[0];
 
         for(let i = 0; i < stylesheet.cssRules.length; i++) {
             const rule = stylesheet.cssRules[i] as CSSStyleRule;
-            if(rule.selectorText === 'tr.more-letters-row') {
+            if(rule.selectorText === 'tr.' + className) {
                 return rule;
             }
         }
     }
-    function hideMoreLettersRowStyle(): void {
-        const letterStyle = getMoreLettersRowStyle();
-        letterStyle.style.display = 'none';
+    function setMoreLettersRowStyleVisible(visible: boolean): void {
+        const letterStyle = getRowStyle('more-letters-row');
+        letterStyle.style.display = visible ? 'table-row' : 'none';
     }
-    function showMoreLettersRowStyle(): void {
-        const letterStyle = getMoreLettersRowStyle();
-        letterStyle.style.display = 'table-row';
+    function setMoreWordsRowStyleVisible(visible: boolean): void {
+        const letterStyle = getRowStyle('more-words-row');
+        letterStyle.style.display = visible ? 'table-row' : 'none';
     }
-    function getMoreWordsRowStyle(): CSSStyleRule {
-        const stylesheet = document.styleSheets[0];
-
-        for(let i = 0; i < stylesheet.cssRules.length; i++) {
-            const rule = stylesheet.cssRules[i] as CSSStyleRule;
-            if(rule.selectorText === 'tr.more-words-row') {
-                return rule;
-            }
-        }
-    }
-    function hideMoreWordsRowStyle(): void {
-        const letterStyle = getMoreWordsRowStyle();
-        letterStyle.style.display = 'none';
-    }
-    function showMoreWordsRowStyle(): void {
-        const letterStyle = getMoreWordsRowStyle();
-        letterStyle.style.display = 'table-row';
-    }
-
 
     async function fetchData(pattern: string, absent_letters: string) {
         let response = await fetch(getURL()+'?pattern='+encodeURIComponent(pattern)+'&absent_letters='+encodeURIComponent(absent_letters));
@@ -103,13 +84,12 @@
                     let summary = document.createElement("summary");
                     summary.appendChild(document.createTextNode("More words"));
                     more_words.appendChild(summary);
+                    // Don't actually put a table in the details element, because then the
+                    // two tables won't be the same width. Just show/hide the table when
+                    // the details element is toggled.
                     more_words.addEventListener("toggle", event => {
-                        if ((event.target as HTMLDetailsElement).open) {
-                            showMoreWordsRowStyle();
-                        }
-                        else {
-                            hideMoreWordsRowStyle();
-                        }
+                        const is_open = (event.target as HTMLDetailsElement).open;
+                        setMoreWordsRowStyleVisible(is_open);
                     });
                     word_table.appendChild(more_words);
                 }
@@ -138,13 +118,12 @@
                     let summary = document.createElement("summary");
                     summary.appendChild(document.createTextNode("More letters"));
                     more_letters.appendChild(summary);
+                    // Don't actually put a table in the details element, because then the
+                    // two tables won't be the same width. Just show/hide the table when
+                    // the details element is toggled.
                     more_letters.addEventListener("toggle", event => {
-                        if ((event.target as HTMLDetailsElement).open) {
-                            showMoreLettersRowStyle();
-                        }
-                        else {
-                            hideMoreLettersRowStyle();
-                        }
+                        const isOpen = (event.target as HTMLDetailsElement).open;
+                        setMoreLettersRowStyleVisible(isOpen);
                     });
                     letter_table.appendChild(more_letters);
                 }
@@ -153,11 +132,11 @@
             letter_table.appendChild(row);
         });
         best_letters_to_guess.innerHTML = "";
-        hideMoreLettersRowStyle();
+        setMoreLettersRowStyleVisible(false);
         best_letters_to_guess.appendChild(letter_table);
 
         word_list.innerHTML = "";
-        hideMoreWordsRowStyle();
+        setMoreWordsRowStyleVisible(false);
         word_list.appendChild(word_table);
     }
 
