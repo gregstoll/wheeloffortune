@@ -85,6 +85,7 @@
             letter_td.appendChild(document.createTextNode(letter));
             let freq_td = document.createElement("td");
             freq_td.appendChild(document.createTextNode((frequency/total_frequency*100).toFixed(2) + "%"));
+            freq_td.classList.add("frequency");
             row.appendChild(letter_td);
             row.appendChild(freq_td);
             letter_count += 1;
