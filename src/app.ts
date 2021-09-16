@@ -69,10 +69,18 @@
     }
 
     document.getElementById("search").addEventListener("click", function() {
-        let pattern = (document.getElementById("pattern") as HTMLInputElement).value;
-        pattern = pattern.trim().replace(/\./g, "?");
-        let absent_letters = (document.getElementById("absent_letters") as HTMLInputElement).value;
-        absent_letters = absent_letters.trim();
+        let pattern_element = document.getElementById("pattern") as HTMLInputElement;
+        let pattern = pattern_element.value;
+        pattern = pattern.trim().toLowerCase().replace(/\s+/g, '');
+        // unicode ellipses
+        pattern = pattern.replace(/\u2026/g, '...');
+        pattern_element.value = pattern;
+        pattern = pattern.replace(/\./g, "?").replace(/\*/g, "?");
+
+        let absent_letters_element = document.getElementById("absent_letters") as HTMLInputElement;
+        let absent_letters = absent_letters_element.value;
+        absent_letters = absent_letters.trim().toLowerCase().replace(/\s+/g, '');
+        absent_letters_element.value = absent_letters;
         fetchData(pattern, absent_letters);
     });
 })();
