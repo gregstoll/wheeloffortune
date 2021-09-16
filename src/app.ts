@@ -9,6 +9,44 @@
         return SCRIPT_NAME;
     }
 
+    function getMoreLettersRowStyle(): CSSStyleRule {
+        const stylesheet = document.styleSheets[0];
+
+        for(let i = 0; i < stylesheet.cssRules.length; i++) {
+            const rule = stylesheet.cssRules[i] as CSSStyleRule;
+            if(rule.selectorText === 'tr.more-letters-row') {
+                return rule;
+            }
+        }
+    }
+    function hideMoreLettersRowStyle(): void {
+        const letterStyle = getMoreLettersRowStyle();
+        letterStyle.style.display = 'none';
+    }
+    function showMoreLettersRowStyle(): void {
+        const letterStyle = getMoreLettersRowStyle();
+        letterStyle.style.display = 'table-row';
+    }
+    function getMoreWordsRowStyle(): CSSStyleRule {
+        const stylesheet = document.styleSheets[0];
+
+        for(let i = 0; i < stylesheet.cssRules.length; i++) {
+            const rule = stylesheet.cssRules[i] as CSSStyleRule;
+            if(rule.selectorText === 'tr.more-words-row') {
+                return rule;
+            }
+        }
+    }
+    function hideMoreWordsRowStyle(): void {
+        const letterStyle = getMoreWordsRowStyle();
+        letterStyle.style.display = 'none';
+    }
+    function showMoreWordsRowStyle(): void {
+        const letterStyle = getMoreWordsRowStyle();
+        letterStyle.style.display = 'table-row';
+    }
+
+
     async function fetchData(pattern: string, absent_letters: string) {
         let response = await fetch(getURL()+'?pattern='+encodeURIComponent(pattern)+'&absent_letters='+encodeURIComponent(absent_letters));
         const json = await response.json();
@@ -39,7 +77,6 @@
             letter_frequency.delete(absent_char);
         }
         let more_words : HTMLDetailsElement | undefined = undefined;
-        let more_words_table : HTMLTableElement | undefined = undefined;
         let word_count = 0;
         const WORD_LIMIT = 10;
         for (let result of json) {
@@ -66,17 +103,23 @@
                     let summary = document.createElement("summary");
                     summary.appendChild(document.createTextNode("More words"));
                     more_words.appendChild(summary);
-                    more_words_table = document.createElement("table");
+                    more_words.addEventListener("toggle", event => {
+                        if ((event.target as HTMLDetailsElement).open) {
+                            showMoreWordsRowStyle();
+                        }
+                        else {
+                            hideMoreWordsRowStyle();
+                        }
+                    });
+                    word_table.appendChild(more_words);
                 }
-                more_words_table.appendChild(row);
-            } else {
-                word_table.appendChild(row);
+                row.classList.add("more-words-row");
             }
+            word_table.appendChild(row);
         }
 
         let letter_table = document.createElement("table");
         let more_letters : HTMLDetailsElement | undefined = undefined;
-        let more_letters_table : HTMLTableElement | undefined = undefined;
         let letter_count = 0;
         const LETTER_LIMIT = 5;
         Array.from(letter_frequency.entries()).sort((a, b) => b[1] - a[1]).forEach(([letter, frequency]) => {
@@ -95,25 +138,27 @@
                     let summary = document.createElement("summary");
                     summary.appendChild(document.createTextNode("More letters"));
                     more_letters.appendChild(summary);
-                    more_letters_table = document.createElement("table");
+                    more_letters.addEventListener("toggle", event => {
+                        if ((event.target as HTMLDetailsElement).open) {
+                            showMoreLettersRowStyle();
+                        }
+                        else {
+                            hideMoreLettersRowStyle();
+                        }
+                    });
+                    letter_table.appendChild(more_letters);
                 }
-                more_letters_table.appendChild(row);
-            } else {
-                letter_table.appendChild(row);
+                row.classList.add("more-letters-row");
             }
+            letter_table.appendChild(row);
         });
         best_letters_to_guess.innerHTML = "";
+        hideMoreLettersRowStyle();
         best_letters_to_guess.appendChild(letter_table);
-        if (more_letters !== undefined) {
-            more_letters.appendChild(more_letters_table);
-            best_letters_to_guess.appendChild(more_letters);
-        }
+
         word_list.innerHTML = "";
+        hideMoreWordsRowStyle();
         word_list.appendChild(word_table);
-        if (more_words !== undefined) {
-            more_words.appendChild(more_words_table);
-            word_list.appendChild(more_words);
-        }
     }
 
     document.getElementById("search").addEventListener("click", function() {
