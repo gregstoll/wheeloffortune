@@ -74,7 +74,7 @@ fn validate_absent_letters(absent_letters: &str) -> Result<(), String> {
 }
 
 fn error(s: &str) -> cgi::Response {
-    cgi::binary_response(200, "application/json", (json::object!{"error": s.clone()}).dump().as_bytes().to_vec())
+    json_response_cross_origin(json::object!{"error": s.clone()}.dump().as_bytes().to_vec())
 }
 
 fn json_response_cross_origin(body: Vec<u8>) -> cgi::Response {
