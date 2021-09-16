@@ -38,6 +38,10 @@
         for(let absent_char of absent_letters) {
             letter_frequency.delete(absent_char);
         }
+        let more_words : HTMLDetailsElement | undefined = undefined;
+        let more_words_table : HTMLTableElement | undefined = undefined;
+        let word_count = 0;
+        const WORD_LIMIT = 10;
         for (let result of json) {
             let row = document.createElement("tr");
             let word_td = document.createElement("td");
@@ -54,10 +58,27 @@
             total_frequency += result.frequency;
             row.appendChild(word_td);
             row.appendChild(freq_td);
-            word_table.appendChild(row);
+
+            word_count += 1;
+            if(word_count > WORD_LIMIT) {
+                if (more_words === undefined) {
+                    more_words = document.createElement("details");
+                    let summary = document.createElement("summary");
+                    summary.appendChild(document.createTextNode("More words"));
+                    more_words.appendChild(summary);
+                    more_words_table = document.createElement("table");
+                }
+                more_words_table.appendChild(row);
+            } else {
+                word_table.appendChild(row);
+            }
         }
 
         let letter_table = document.createElement("table");
+        let more_letters : HTMLDetailsElement | undefined = undefined;
+        let more_letters_table : HTMLTableElement | undefined = undefined;
+        let letter_count = 0;
+        const LETTER_LIMIT = 5;
         Array.from(letter_frequency.entries()).sort((a, b) => b[1] - a[1]).forEach(([letter, frequency]) => {
             let row = document.createElement("tr");
             let letter_td = document.createElement("td");
@@ -66,12 +87,32 @@
             freq_td.appendChild(document.createTextNode((frequency/total_frequency*100).toFixed(2) + "%"));
             row.appendChild(letter_td);
             row.appendChild(freq_td);
-            letter_table.appendChild(row);
+            letter_count += 1;
+            if(letter_count > LETTER_LIMIT) {
+                if (more_letters === undefined) {
+                    more_letters = document.createElement("details");
+                    let summary = document.createElement("summary");
+                    summary.appendChild(document.createTextNode("More letters"));
+                    more_letters.appendChild(summary);
+                    more_letters_table = document.createElement("table");
+                }
+                more_letters_table.appendChild(row);
+            } else {
+                letter_table.appendChild(row);
+            }
         });
         best_letters_to_guess.innerHTML = "";
         best_letters_to_guess.appendChild(letter_table);
+        if (more_letters !== undefined) {
+            more_letters.appendChild(more_letters_table);
+            best_letters_to_guess.appendChild(more_letters);
+        }
         word_list.innerHTML = "";
         word_list.appendChild(word_table);
+        if (more_words !== undefined) {
+            more_words.appendChild(more_words_table);
+            word_list.appendChild(more_words);
+        }
     }
 
     document.getElementById("search").addEventListener("click", function() {
