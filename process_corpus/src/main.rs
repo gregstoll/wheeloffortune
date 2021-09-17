@@ -59,7 +59,7 @@ fn parse_line(line: &str, freq: &mut WordFrequency) -> Result<()> {
     for entry in parts {
         // each entry is "<year>,<match count>,<volume count>"
         let mut entry_parts = entry.split(',');
-        // TODO - only count stuff since 1920 or something?
+        // TODO - only count stuff since 1920 or something? Or weight later years later?
         let _year = entry_parts.next().ok_or_else(|| anyhow!("no year in entry"))?;
         let entry_count = entry_parts.next().ok_or_else(|| anyhow!("no count in entry"))?;
         let entry_count = entry_count.parse::<u64>().map_err(|e| anyhow!("couldn't parse count: {}", e))?;
