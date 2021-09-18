@@ -4,9 +4,10 @@ from typing import DefaultDict, Dict
 
 frequencies: Dict[str, int] = {}
 
-def is_allowed_char(c: str) -> bool:
-    return c.isalpha() or c == '-' or c == '\'' or c == '_'
-
+def is_allowed_word(s: str) -> bool:
+    if not s.isascii():
+        return False
+    return all([c.isalpha() or c == '-' or c == '\'' or c == '_' for c in s])
 
 # skipping _NUM since we don't want numbers anyway
 SUFFIXES = ["_NOUN", "_VERB", "_ADJ", "_ADV", "_ADP", "_PRON", "_DET", "_CONJ", "_PRT"]
@@ -19,7 +20,7 @@ def trim_part_of_speech(word: str) -> str:
 def parse_line(line: str, frequencies: Dict[str, int]) -> None:
     parts = line.split()
     word = parts[0]
-    if any(not is_allowed_char(c) for c in word):
+    if not is_allowed_word(word):
         return
     word = trim_part_of_speech(word)
     if "_" in word:
