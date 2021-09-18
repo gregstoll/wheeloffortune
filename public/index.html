@@ -26,7 +26,7 @@
         </div>
         <p><a href="#about">About this project</a></p>
         <p><label for="pattern">Pattern:&nbsp;</label><input type="text" id="pattern"></p>
-        <p>Use <kdb>.</kdb> or <kdb>?</kdb> or <kbd>*</kbd> for unknown letters. Spaces will be ignored.</p>
+        <p>Use <kbd>.</kbd> or <kbd>?</kbd> or <kbd>*</kbd> for unknown letters. Spaces will be ignored.</p>
         <p><label for="absent_letters">Absent letters:&nbsp;</label><input type="text" id="absent_letters"></p>
         <p><input type="button" name="search" id="search" value="Search"></p>
         <div id="results" class="row mb-3">
@@ -39,8 +39,14 @@
               <div id="possible_word_list"></div>
           </div>
         </div>
-    <h1 id="about">About this project</h1>
-    <script type="text/javascript" src="dist/app.bundle.js"></script>
+        <h1 id="about">About this project</h1>
+        <div class="col-md-8">
+            <p>This is a solver for <a href="https://en.wikipedia.org/wiki/Wheel_of_Fortune_(American_game_show)">Wheel of Fortune</a> words. Simply enter the pattern of letters in the word with <kbd>.</kbd> or <kbd>?</kbd> or <kbd>*</kbd> in spots where the letter isn't known. If there are letters that have already been guessed, enter those letters in the "Absent letters" field. Spaces in both fields are ignored.</p>
+            <p>The word list is taken from <a href="https://storage.googleapis.com/books/ngrams/books/datasetsv3.html">Google Books Ngrams</a>, specifically the 1-grams from the 20200217 release.</p>
+            <p>The source code is <a href="https://github.com/gregstoll/wheeloffortune">available on GitHub</a>.</p>
+            <p>"Wheel of Fortune®" is a registered trademark of Califon Productions, Inc.</p>
+        </div>
+        <script type="text/javascript" src="dist/app.bundle.js"></script>
     <ssibodybottom />
     </div>
   </body>
