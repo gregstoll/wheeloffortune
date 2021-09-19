@@ -11,4 +11,6 @@ The word list is taken from [Google Books Ngrams](https://storage.googleapis.com
 
 The [`search_corpus`](https://github.com/gregstoll/wheeloffortune/blob/main/search_corpus/src/main.rs) script searches through the word frequency file for the specified pattern.
 
+See [my writeup of this project](https://gregstoll.wordpress.com/2021/09/18/new-project-wheel-of-fortune-solver-and-rust-is-still-faster-than-python/).
+
 "Wheel of Fortune®" is a registered trademark of Califon Productions, Inc.
