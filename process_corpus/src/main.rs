@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::{self, BufRead, Write}, path::Path};
+use std::{collections::HashMap, fs::File, io::{self, BufRead, Write}};
 use anyhow::{anyhow, Result};
 
 type WordFrequency = HashMap<String, u64>;
@@ -15,7 +15,7 @@ fn main() -> Result<()> {
     }
     let mut entries = freq.iter().collect::<Vec<_>>();
     println!("got {:?} words", freq.len());
-    entries.sort_by(|a, b| b.1.cmp(a.1));
+    entries.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
     for i in 0..25 {
         println!("{:?}", entries[i]);
     }
@@ -60,8 +60,8 @@ fn parse_line(line: &str, freq: &mut WordFrequency) -> Result<()> {
         // each entry is "<year>,<match count>,<volume count>"
         let mut entry_parts = entry.split(',');
         // TODO - only count stuff since 1920 or something? Or weight later years later?
-        let _year = entry_parts.next().ok_or_else(|| anyhow!("no year in entry"))?;
-        let entry_count = entry_parts.next().ok_or_else(|| anyhow!("no count in entry"))?;
+        let _year = entry_parts.next().ok_or_else(|| anyhow!("no year in entry {}", entry))?;
+        let entry_count = entry_parts.next().ok_or_else(|| anyhow!("no count in entry {}", entry))?;
         let entry_count = entry_count.parse::<u64>().map_err(|e| anyhow!("couldn't parse count: {}", e))?;
         count += entry_count;
     }
@@ -81,19 +81,15 @@ fn trim_part_of_speech(word: &str) -> &str {
 }
 
 fn parse_file(path: &str, freq: &mut WordFrequency) -> Result<()> {
-    let lines = read_lines(path)?;
-    for line in lines {
-        let line = line?;
+    let mut line = String::new();
+    let file = File::open(path)?;
+    let mut reader = io::BufReader::new(file);
+    while reader.read_line(&mut line)? > 0 {
         parse_line(&line, freq)?;
+        line.clear();
     }
 
     Ok(())
-}
-
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where P: AsRef<Path>, {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
 }
 
 #[cfg(test)]

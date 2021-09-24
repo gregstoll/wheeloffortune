@@ -2,7 +2,7 @@ extern crate cgi;
 extern crate json;
 extern crate url;
 
-use std::{collections::{HashMap, HashSet}, fs::File, io::{self, BufRead}, path::Path};
+use std::{collections::{HashMap, HashSet}, fs::File, io::{self, BufRead}};
 use regex::Regex;
 
 fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
@@ -12,16 +12,18 @@ fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     let absent_letters = query_parts.get("absent_letters").ok_or(String::from("Internal error - no absent_letters specified!"))?;
     validate_absent_letters(absent_letters)?;
     let word_regex = build_regex(pattern, absent_letters)?;
-    let lines = read_lines(Path::new("../data/processed/word_frequency.txt")).map_err(|e| e.to_string())?;
     let mut results = vec![];
-    for line in lines {
-        let line = line.map_err(|e| e.to_string())?;
+    let mut line = String::new();
+    let file = File::open("../data/processed/word_frequency.txt").map_err(|e| e.to_string())?;
+    let mut reader = io::BufReader::new(file);
+    while reader.read_line(&mut line).map_err(|e| e.to_string())? > 0 {
         let mut parts = line.split_ascii_whitespace();
         let word = parts.next().unwrap();
         if word_regex.is_match(word){
             // TODO - use Object constructor
             results.push(json::object! { "word" => word, "frequency" => parts.next().unwrap().parse::<u64>().unwrap() });
         }
+        line.clear();
     }
     Ok(json::JsonValue::Array(results))
 }
@@ -89,13 +91,6 @@ fn json_response_cross_origin(body: Vec<u8>) -> cgi::Response {
 
 fn success(s: json::JsonValue) -> cgi::Response {
     json_response_cross_origin(s.dump().as_bytes().to_vec())
-}
-
-// https://doc.rust-lang.org/stable/rust-by-example/std_misc/file/read_lines.html
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where P: AsRef<Path>, {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
 }
 
 fn process_request(request: &cgi::Request) -> Result<json::JsonValue, String> {
@@ -239,4 +234,3 @@ mod tests {
         assert!(!result.is_ok());
     }
 }
-
