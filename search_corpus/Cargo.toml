@@ -10,6 +10,13 @@ cgi = "0.6"
 json = "0.12"
 url = "2.1"
 
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "variedwords"
+harness = false
+
 [dependencies.regex]
 version = "1"
 default-features = false  # Turn off unicode support
@@ -21,3 +28,4 @@ opt-level = 2 #3 is max
 # https://deterministic.space/high-performance-rust.html
 #lto = "fat"
 #codegen-units = 1
+
