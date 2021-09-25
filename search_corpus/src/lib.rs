@@ -2,7 +2,15 @@ extern crate json;
 extern crate url;
 
 use std::{collections::{HashMap, HashSet}, fs::File, io::{self, BufRead}};
+use fst::IntoStreamer;
 use regex::Regex;
+use regex_automata::dense;
+use memmap::Mmap;
+
+// Use FST if number of questions marks is below this
+// thresohld. (set to 0 to never use FST, set to
+// 1000 to always use FST)
+const FST_QUESTION_MARK_THRESHOLD: usize = 6;
 
 pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     let query_parts: HashMap<String, String> = url::form_urlencoded::parse(query.as_bytes()).into_owned().collect();
@@ -11,20 +19,34 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     let absent_letters = query_parts.get("absent_letters").ok_or(String::from("Internal error - no absent_letters specified!"))?;
     validate_absent_letters(absent_letters)?;
     let word_regex = build_regex(pattern, absent_letters)?;
-    let mut results = vec![];
-    let mut line = String::new();
-    let file = File::open("../data/processed/word_frequency.txt").map_err(|e| e.to_string())?;
-    let mut reader = io::BufReader::new(file);
-    while reader.read_line(&mut line).map_err(|e| e.to_string())? > 0 {
-        let mut parts = line.split_ascii_whitespace();
-        let word = parts.next().unwrap();
-        if word_regex.is_match(word){
-            // TODO - use Object constructor
-            results.push(json::object! { "word" => word, "frequency" => parts.next().unwrap().parse::<u64>().unwrap() });
+    let pattern_question_marks = pattern.chars().filter(|c| *c == '?').count();
+    let read_fst_file: bool = pattern_question_marks < FST_QUESTION_MARK_THRESHOLD;
+    let json_results = if read_fst_file {
+        let mmap = unsafe { Mmap::map(&File::open("../data/processed/word_frequency.fst").map_err(|e| e.to_string())?).map_err(|e| e.to_string())? };
+        let map = fst::Map::new(mmap).map_err(|e| e.to_string())?;
+        // need to strip off the ^ and $, but setting anchored to true will cover that
+        let word_regex_pattern = &word_regex.as_str()[1..word_regex.as_str().len()-1];
+        let dfa = dense::Builder::new().anchored(true).build(word_regex_pattern).unwrap();
+        let mut results = map.search(&dfa).into_stream().into_str_vec().map_err(|e| e.to_string())?;
+        results.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        results.iter().map(|entry| json::object! { "word" => entry.0.clone(), "frequency" => entry.1 }).collect()
+    } else {
+        let mut results = vec![];
+        let mut line = String::new();
+        let file = File::open("../data/processed/word_frequency.txt").map_err(|e| e.to_string())?;
+        let mut reader = io::BufReader::new(file);
+        while reader.read_line(&mut line).map_err(|e| e.to_string())? > 0 {
+            let mut parts = line.split_ascii_whitespace();
+            let word = parts.next().unwrap();
+            if word_regex.is_match(word){
+                // TODO - use Object constructor
+                results.push(json::object! { "word" => word, "frequency" => parts.next().unwrap().parse::<u64>().unwrap() });
+            }
+            line.clear();
         }
-        line.clear();
-    }
-    Ok(json::JsonValue::Array(results))
+        results
+    };
+    Ok(json::JsonValue::Array(json_results))
 }
 
 fn build_regex(pattern: &str, absent_letters: &str) -> Result<Regex, String> {
@@ -76,6 +98,7 @@ fn validate_absent_letters(absent_letters: &str) -> Result<(), String> {
 
 
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]

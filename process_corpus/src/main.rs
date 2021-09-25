@@ -3,6 +3,7 @@ use anyhow::{anyhow, Result};
 
 type WordFrequency = HashMap<String, u64>;
 
+const WRITE_FST_FILE: bool = true;
 const FREQUENCY_CUTOFF: u64 = 10000;
 
 fn main() -> Result<()> {
@@ -24,10 +25,20 @@ fn main() -> Result<()> {
     // presumably the OCR was wrong) at low frequencies. On inspection, we're not
     // losing anything valuable if we cut off at 10000, and it reduces false positives
     // and file size.
-    for entry in entries {
+    for entry in &entries {
         if *(entry.1) >= FREQUENCY_CUTOFF {
             writeln!(file, "{} {}", entry.0, entry.1)?;
         }
+    }
+    if WRITE_FST_FILE {
+        let mut filtered_entries = entries.iter().filter(|e| *e.1 >= FREQUENCY_CUTOFF).collect::<Vec<_>>();
+        filtered_entries.sort_by(|a, b| a.0.cmp(b.0));
+        let writer = io::BufWriter::new(File::create("../data/processed/word_frequency.fst")?);
+        let mut fst_builder = fst::MapBuilder::new(writer)?;
+        for entry in &filtered_entries {
+            fst_builder.insert(entry.0.as_bytes(), *entry.1)?;
+        }
+        fst_builder.finish()?;
     }
     Ok(())
 }
