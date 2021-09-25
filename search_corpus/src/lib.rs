@@ -7,7 +7,10 @@ use regex::Regex;
 use regex_automata::dense;
 use memmap::Mmap;
 
-const READ_FST_FILE: bool = true;
+// Use FST if number of questions marks is below this
+// thresohld. (set to 0 to never use FST, set to
+// 1000 to always use FST)
+const FST_QUESTION_MARK_THRESHOLD: usize = 6;
 
 pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     let query_parts: HashMap<String, String> = url::form_urlencoded::parse(query.as_bytes()).into_owned().collect();
@@ -16,7 +19,9 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     let absent_letters = query_parts.get("absent_letters").ok_or(String::from("Internal error - no absent_letters specified!"))?;
     validate_absent_letters(absent_letters)?;
     let word_regex = build_regex(pattern, absent_letters)?;
-    let json_results = if READ_FST_FILE {
+    let pattern_question_marks = pattern.chars().filter(|c| *c == '?').count();
+    let read_fst_file: bool = pattern_question_marks < FST_QUESTION_MARK_THRESHOLD;
+    let json_results = if read_fst_file {
         let mmap = unsafe { Mmap::map(&File::open("../data/processed/word_frequency.fst").map_err(|e| e.to_string())?).map_err(|e| e.to_string())? };
         let map = fst::Map::new(mmap).map_err(|e| e.to_string())?;
         // need to strip off the ^ and $, but setting anchored to true will cover that
