@@ -76,6 +76,7 @@ fn validate_absent_letters(absent_letters: &str) -> Result<(), String> {
 
 
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
