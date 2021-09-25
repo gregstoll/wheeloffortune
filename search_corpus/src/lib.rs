@@ -8,7 +8,7 @@ use regex_automata::dense;
 use memmap::Mmap;
 
 // Use FST if number of questions marks is below this
-// thresohld. (set to 0 to never use FST, set to
+// threshold. (set to 0 to never use FST, set to
 // 1000 to always use FST)
 const FST_QUESTION_MARK_THRESHOLD: usize = 6;
 
@@ -61,16 +61,20 @@ fn build_regex(pattern: &str, absent_letters: &str) -> Result<Regex, String> {
             absent_letter_set.insert(letter.to_ascii_lowercase());
         }
     }
-    let mut absent_letter_builder = "[^-'".to_string();
-    for absent_letter in absent_letter_set {
-        absent_letter_builder.push(absent_letter);
+    // regex gets cranky about turning off unicode then matching characters that aren't something 
+    // (because they might be unicode characters!) so just iterate over all the possibilities here.
+    let mut absent_letter_builder = "[".to_string();
+    for letter in 'a'..='z' {
+        if !absent_letter_set.contains(&letter) {
+            absent_letter_builder.push(letter);
+        }
     }
     absent_letter_builder.push(']');
-
-    let mut regex_str = "^".to_string();
+    // (?-u) turns off unicode, although that's not really necessary here since we're already
+    // specifying the exact characters to match.
+    let mut regex_str = "^(?-u)".to_string();
     regex_str.push_str(&pattern.to_ascii_lowercase().replace("?", absent_letter_builder.as_str()));
     regex_str.push('$');
-    //println!("{}", regex_str);
     Regex::new(&regex_str).map_err(|e| e.to_string())
 }
 
