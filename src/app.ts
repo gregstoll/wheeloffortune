@@ -155,4 +155,16 @@
         absent_letters_element.value = absent_letters;
         fetchData(pattern, absent_letters);
     });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        let patternElem = document.getElementById("pattern") as HTMLInputElement;
+        let absentElem  = document.getElementById("absent_letters") as HTMLInputElement;
+        if (patternElem.value.trim() == "" && absentElem.value.trim() == "") {
+            // set up default values.
+            // hopefully this will avoid clearing them if the user reloads
+            // (this is a problem with setting value in the HTML directly)
+            patternElem.value = "??ai?";
+            absentElem.value = "er";
+        }
+    }, false);
 })();
