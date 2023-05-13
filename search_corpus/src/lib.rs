@@ -12,6 +12,7 @@ use memmap::Mmap;
 // 1000 to always use FST)
 const FST_QUESTION_MARK_THRESHOLD: usize = 6;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum PatternMode {
     WheelOfFortune,
     Crossword,
@@ -37,7 +38,7 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     validate_pattern(pattern)?;
     let absent_letters = query_parts.get("absent_letters").ok_or(String::from("Internal error - no absent_letters specified!"))?;
     validate_absent_letters(absent_letters)?;
-    let word_regex = build_regex(pattern, absent_letters)?;
+    let word_regex = build_regex(pattern, absent_letters, &mode)?;
     let pattern_question_marks = pattern.chars().filter(|c| *c == '?').count();
     let read_fst_file: bool = pattern_question_marks < FST_QUESTION_MARK_THRESHOLD;
     let json_results = if read_fst_file {
@@ -68,31 +69,40 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     Ok(json::JsonValue::Array(json_results))
 }
 
-fn build_regex(pattern: &str, absent_letters: &str) -> Result<Regex, String> {
-    let mut absent_letter_set = HashSet::new();
-    for letter in absent_letters.chars() {
-        //println!("inserting {} from absent", letter);
-        absent_letter_set.insert(letter.to_ascii_lowercase());
-    }
-    for letter in pattern.chars() {
-        if letter.is_ascii_alphabetic() {
-            //println!("inserting {} from pattern", letter);
-            absent_letter_set.insert(letter.to_ascii_lowercase());
-        }
-    }
-    // regex gets cranky about turning off unicode then matching characters that aren't something 
-    // (because they might be unicode characters!) so just iterate over all the possibilities here.
-    let mut absent_letter_builder = "[".to_string();
-    for letter in 'a'..='z' {
-        if !absent_letter_set.contains(&letter) {
-            absent_letter_builder.push(letter);
-        }
-    }
-    absent_letter_builder.push(']');
+fn build_regex(pattern: &str, absent_letters: &str, mode: &PatternMode) -> Result<Regex, String> {
     // (?-u) turns off unicode, although that's not really necessary here since we're already
     // specifying the exact characters to match.
     let mut regex_str = "^(?-u)".to_string();
-    regex_str.push_str(&pattern.to_ascii_lowercase().replace("?", absent_letter_builder.as_str()));
+    if *mode == PatternMode::WheelOfFortune {
+        let mut absent_letter_set = HashSet::new();
+        for letter in absent_letters.chars() {
+            //println!("inserting {} from absent", letter);
+            absent_letter_set.insert(letter.to_ascii_lowercase());
+        }
+        for letter in pattern.chars() {
+            if letter.is_ascii_alphabetic() {
+                //println!("inserting {} from pattern", letter);
+                absent_letter_set.insert(letter.to_ascii_lowercase());
+            }
+        }
+        // regex gets cranky about turning off unicode then matching characters that aren't something 
+        // (because they might be unicode characters!) so just iterate over all the possibilities here.
+        let mut absent_letter_builder = "[".to_string();
+        for letter in 'a'..='z' {
+            if !absent_letter_set.contains(&letter) {
+                absent_letter_builder.push(letter);
+            }
+        }
+        absent_letter_builder.push(']');
+        regex_str.push_str(&pattern.to_ascii_lowercase().replace("?", absent_letter_builder.as_str()));
+    } else {
+        let mut absent_letter_builder = "[".to_string();
+        for letter in 'a'..='z' {
+            absent_letter_builder.push(letter);
+        }
+        absent_letter_builder.push(']');
+        regex_str.push_str(&pattern.to_ascii_lowercase().replace("?", &absent_letter_builder.as_str()));
+    }
     regex_str.push('$');
     Regex::new(&regex_str).map_err(|e| e.to_string())
 }
@@ -182,15 +192,29 @@ mod tests {
     }
 
     #[test]
-    fn test_no_reuse_letters_in_pattern() {
+    fn test_no_reuse_letters_in_pattern_for_wheeloffortune() {
         let result = process_query_string("mode=WheelOfFortune&pattern=t?e?&absent_letters=").unwrap();
         let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
         assert!(!words.contains(&"tree".to_string()));
     }
 
     #[test]
+    fn test_reuse_letters_in_pattern_for_crossword() {
+        let result = process_query_string("mode=Crossword&pattern=t?e?&absent_letters=").unwrap();
+        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        assert!(words.contains(&"tree".to_string()));
+    }
+
+    #[test]
     fn test_apostrophe() {
         let result = process_query_string("mode=WheelOfFortune&pattern=c??'t&absent_letters=").unwrap();
+        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        assert!(words.contains(&"can't".to_string()));
+    }
+
+    #[test]
+    fn test_apostrophe_crossword() {
+        let result = process_query_string("mode=Crossword&pattern=c??'t&absent_letters=").unwrap();
         let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
         assert!(words.contains(&"can't".to_string()));
     }
