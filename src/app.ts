@@ -29,7 +29,7 @@
     }
 
     async function fetchData(pattern: string, absent_letters: string) {
-        let response = await fetch(getURL()+'?pattern='+encodeURIComponent(pattern)+'&absent_letters='+encodeURIComponent(absent_letters));
+        let response = await fetch(getURL()+'?mode=WheelOfFortune&pattern='+encodeURIComponent(pattern)+'&absent_letters='+encodeURIComponent(absent_letters));
         const json = await response.json();
         let word_list = document.getElementById("possible_word_list");
         let best_letters_to_guess = document.getElementById("best_letters_to_guess");
