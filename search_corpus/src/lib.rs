@@ -47,7 +47,10 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     let mode = PatternMode::try_from(mode.as_str()).map_err(|_| String::from("Internal error - invalid mode!"))?;
     let pattern = query_parts.get("pattern").ok_or(String::from("Internal error - no pattern specified!"))?;
     validate_pattern(pattern)?;
-    let absent_letters = query_parts.get("absent_letters").ok_or(String::from("Internal error - no absent_letters specified!"))?;
+    // TODO - validate if in WheelOfFortune mode?
+    //let absent_letters = query_parts.get("absent_letters").ok_or(String::from("Internal error - no absent_letters specified!"))?;
+    let empty_absent_letters = String::from("");
+    let absent_letters = query_parts.get("absent_letters").unwrap_or(&empty_absent_letters);
     validate_absent_letters(absent_letters)?;
     let word_regex = build_regex(pattern, absent_letters, &mode)?;
     let pattern_question_marks = pattern.chars().filter(|c| *c == '?').count();
