@@ -1,7 +1,7 @@
 extern crate json;
 extern crate url;
 
-use std::{collections::{HashMap, HashSet}, fs::File, io::{self, BufRead}, convert::TryFrom};
+use std::{collections::{HashMap, HashSet}, fs::File, io::{self, BufRead}, convert::TryFrom, path::Path};
 use fst::IntoStreamer;
 use regex::Regex;
 use regex_automata::dense;
@@ -30,6 +30,17 @@ impl TryFrom<&str> for PatternMode {
     }
 }
 
+pub fn find_processed_file(filename: &str) -> String {
+    let mut path: String = format!("data/processed/{}", filename);
+    for _i in 0..5 {
+        if Path::new(&path).exists() {
+            return path;
+        }
+        path = format!("../{}", path);
+    }
+    panic!("Couldn't find file!");
+}
+
 pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     let query_parts: HashMap<String, String> = url::form_urlencoded::parse(query.as_bytes()).into_owned().collect();
     let mode = query_parts.get("mode").ok_or(String::from("Internal error - no mode specified!"))?;
@@ -42,7 +53,7 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     let pattern_question_marks = pattern.chars().filter(|c| *c == '?').count();
     let read_fst_file: bool = pattern_question_marks < FST_QUESTION_MARK_THRESHOLD;
     let json_results = if read_fst_file {
-        let mmap = unsafe { Mmap::map(&File::open("../data/processed/word_frequency.fst").map_err(|e| e.to_string())?).map_err(|e| e.to_string())? };
+        let mmap = unsafe { Mmap::map(&File::open(find_processed_file("word_frequency.fst")).map_err(|e| e.to_string())?).map_err(|e| e.to_string())? };
         let map = fst::Map::new(mmap).map_err(|e| e.to_string())?;
         // need to strip off the ^ and $, but setting anchored to true will cover that
         let word_regex_pattern = &word_regex.as_str()[1..word_regex.as_str().len()-1];
@@ -53,7 +64,7 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     } else {
         let mut results = vec![];
         let mut line = String::new();
-        let file = File::open("../data/processed/word_frequency.txt").map_err(|e| e.to_string())?;
+        let file = File::open(find_processed_file("word_frequency.txt")).map_err(|e| e.to_string())?;
         let mut reader = io::BufReader::new(file);
         while reader.read_line(&mut line).map_err(|e| e.to_string())? > 0 {
             let mut parts = line.split_ascii_whitespace();
