@@ -6,7 +6,7 @@
   "homepage": "https://github.com/gregstoll/wheeloffortune#readme",
   "scripts": {
     "start": "webpack serve --live-reload",
-    "build": "webpack --config webpack.prod.config.js && node replaceSsiTags.js && chmod +x dist/search_corpus.cgi",
+    "build": "webpack --config webpack.prod.config.js && node replaceSsiTags.js && (rm dist/search_corpus.cgi || true) && ln -s ../../search_corpus/target/release/search_corpus dist/search_corpus.cgi",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
