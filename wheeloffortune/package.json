@@ -1,0 +1,32 @@
+{
+  "name": "wheeloffortune",
+  "version": "1.0.0",
+  "description": "Solve Wheel of Fortune puzzles",
+  "main": "src/app.js",
+  "homepage": "https://github.com/gregstoll/wheeloffortune#readme",
+  "scripts": {
+    "start": "webpack-dev-server --open",
+    "build": "webpack -p --config webpack.prod.config.js --hide-modules && node replaceSsiTags.js && chmod +x dist/search_corpus.cgi",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gregstoll/wheeloffortune.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gregstoll/wheeloffortune/issues"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^6.0.3",
+    "ts-loader": "^6.2.2",
+    "typescript": "^3.8.3",
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.0"
+  },
+  "dependencies": {
+    "esm": "^3.2.25"
+  }
+}
