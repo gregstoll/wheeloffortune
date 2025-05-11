@@ -16,6 +16,14 @@ memmap = "0.7"
 [dev-dependencies]
 criterion = "0.3"
 
+[[bin]]
+name = "search_corpus"
+path = "src/main.rs"
+
+[[bin]]
+name = "search_combinations"
+path = "src/search_combinations.rs"
+
 [[bench]]
 name = "variedwords"
 harness = false

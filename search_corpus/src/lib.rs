@@ -47,11 +47,58 @@ pub fn find_processed_file(filename: &str) -> String {
     panic!("Couldn't find file!");
 }
 
+///
+///
+/// # Examples
+///
+/// ```
+/// use search_corpus::search_combinations;
+///
+/// assert_eq!(search_combinations(&vec![vec!['B', 'D'], vec!['A'], vec!['T', 'D']]),
+///            Ok(vec![("bad".to_string(), 164493412), ("dad".to_string(), 33921229), ("bat".to_string(), 13047332), ("dat".to_string(), 5705367)]));
+/// ```
+pub fn search_combinations(parts: &[Vec<char>]) -> Result<Vec<(String, u64)>, String> {
+    let mut regex_str = "(?-u)".to_string();
+    for slot in parts {
+        regex_str.push('[');
+        for ch in slot {
+            regex_str.push(ch.to_ascii_lowercase());
+        }
+        regex_str.push(']');
+    }
+    dbg!(&regex_str);
+    let mmap = unsafe {
+        Mmap::map(
+            &File::open(find_processed_file("word_frequency.fst")).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?
+    };
+    let map = fst::Map::new(mmap).map_err(|e| e.to_string())?;
+    let dfa = dense::Builder::new()
+        .anchored(true)
+        .build(&regex_str)
+        .unwrap();
+    let mut results = map
+        .search(&dfa)
+        .into_stream()
+        .into_str_vec()
+        .map_err(|e| e.to_string())?;
+    results.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    Ok(results)
+}
+
 pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
-    let query_parts: HashMap<String, String> = url::form_urlencoded::parse(query.as_bytes()).into_owned().collect();
-    let mode = query_parts.get("mode").ok_or(String::from("Internal error - no mode specified!"))?;
-    let mode = PatternMode::try_from(mode.as_str()).map_err(|_| String::from("Internal error - invalid mode!"))?;
-    let pattern = query_parts.get("pattern").ok_or(String::from("Internal error - no pattern specified!"))?;
+    let query_parts: HashMap<String, String> = url::form_urlencoded::parse(query.as_bytes())
+        .into_owned()
+        .collect();
+    let mode = query_parts
+        .get("mode")
+        .ok_or(String::from("Internal error - no mode specified!"))?;
+    let mode = PatternMode::try_from(mode.as_str())
+        .map_err(|_| String::from("Internal error - invalid mode!"))?;
+    let pattern = query_parts
+        .get("pattern")
+        .ok_or(String::from("Internal error - no pattern specified!"))?;
     validate_pattern(pattern)?;
     // TODO - validate if in WheelOfFortune mode?
     //let absent_letters = query_parts.get("absent_letters").ok_or(String::from("Internal error - no absent_letters specified!"))?;
