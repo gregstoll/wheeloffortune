@@ -1,11 +1,17 @@
 extern crate json;
 extern crate url;
 
-use std::{collections::{HashMap, HashSet}, fs::File, io::{self, BufRead}, convert::TryFrom, path::Path};
 use fst::IntoStreamer;
+use memmap::Mmap;
 use regex::Regex;
 use regex_automata::dense;
-use memmap::Mmap;
+use std::{
+    collections::{HashMap, HashSet},
+    convert::TryFrom,
+    fs::File,
+    io::{self, BufRead},
+    path::Path,
+};
 
 // Use FST if number of questions marks is below this
 // threshold. (set to 0 to never use FST, set to
@@ -25,7 +31,7 @@ impl TryFrom<&str> for PatternMode {
         match value {
             "WheelOfFortune" => Ok(PatternMode::WheelOfFortune),
             "Crossword" => Ok(PatternMode::Crossword),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -50,29 +56,48 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
     // TODO - validate if in WheelOfFortune mode?
     //let absent_letters = query_parts.get("absent_letters").ok_or(String::from("Internal error - no absent_letters specified!"))?;
     let empty_absent_letters = String::from("");
-    let absent_letters = query_parts.get("absent_letters").unwrap_or(&empty_absent_letters);
+    let absent_letters = query_parts
+        .get("absent_letters")
+        .unwrap_or(&empty_absent_letters);
     validate_absent_letters(absent_letters)?;
     let word_regex = build_regex(pattern, absent_letters, &mode)?;
     let pattern_question_marks = pattern.chars().filter(|c| *c == '?').count();
     let read_fst_file: bool = pattern_question_marks < FST_QUESTION_MARK_THRESHOLD;
     let json_results = if read_fst_file {
-        let mmap = unsafe { Mmap::map(&File::open(find_processed_file("word_frequency.fst")).map_err(|e| e.to_string())?).map_err(|e| e.to_string())? };
+        let mmap = unsafe {
+            Mmap::map(
+                &File::open(find_processed_file("word_frequency.fst"))
+                    .map_err(|e| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?
+        };
         let map = fst::Map::new(mmap).map_err(|e| e.to_string())?;
         // need to strip off the ^ and $, but setting anchored to true will cover that
-        let word_regex_pattern = &word_regex.as_str()[1..word_regex.as_str().len()-1];
-        let dfa = dense::Builder::new().anchored(true).build(word_regex_pattern).unwrap();
-        let mut results = map.search(&dfa).into_stream().into_str_vec().map_err(|e| e.to_string())?;
+        let word_regex_pattern = &word_regex.as_str()[1..word_regex.as_str().len() - 1];
+        let dfa = dense::Builder::new()
+            .anchored(true)
+            .build(word_regex_pattern)
+            .unwrap();
+        let mut results = map
+            .search(&dfa)
+            .into_stream()
+            .into_str_vec()
+            .map_err(|e| e.to_string())?;
         results.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-        results.iter().map(|entry| json::object! { "word" => entry.0.clone(), "frequency" => entry.1 }).collect()
+        results
+            .iter()
+            .map(|entry| json::object! { "word" => entry.0.clone(), "frequency" => entry.1 })
+            .collect()
     } else {
         let mut results = vec![];
         let mut line = String::new();
-        let file = File::open(find_processed_file("word_frequency.txt")).map_err(|e| e.to_string())?;
+        let file =
+            File::open(find_processed_file("word_frequency.txt")).map_err(|e| e.to_string())?;
         let mut reader = io::BufReader::new(file);
         while reader.read_line(&mut line).map_err(|e| e.to_string())? > 0 {
             let mut parts = line.split_ascii_whitespace();
             let word = parts.next().unwrap();
-            if word_regex.is_match(word){
+            if word_regex.is_match(word) {
                 // TODO - use Object constructor
                 results.push(json::object! { "word" => word, "frequency" => parts.next().unwrap().parse::<u64>().unwrap() });
             }
@@ -99,7 +124,7 @@ fn build_regex(pattern: &str, absent_letters: &str, mode: &PatternMode) -> Resul
                 absent_letter_set.insert(letter.to_ascii_lowercase());
             }
         }
-        // regex gets cranky about turning off unicode then matching characters that aren't something 
+        // regex gets cranky about turning off unicode then matching characters that aren't something
         // (because they might be unicode characters!) so just iterate over all the possibilities here.
         let mut absent_letter_builder = "[".to_string();
         for letter in 'a'..='z' {
@@ -108,14 +133,22 @@ fn build_regex(pattern: &str, absent_letters: &str, mode: &PatternMode) -> Resul
             }
         }
         absent_letter_builder.push(']');
-        regex_str.push_str(&pattern.to_ascii_lowercase().replace("?", absent_letter_builder.as_str()));
+        regex_str.push_str(
+            &pattern
+                .to_ascii_lowercase()
+                .replace("?", absent_letter_builder.as_str()),
+        );
     } else {
         let mut absent_letter_builder = "[".to_string();
         for letter in 'a'..='z' {
             absent_letter_builder.push(letter);
         }
         absent_letter_builder.push(']');
-        regex_str.push_str(&pattern.to_ascii_lowercase().replace("?", &absent_letter_builder.as_str()));
+        regex_str.push_str(
+            &pattern
+                .to_ascii_lowercase()
+                .replace("?", absent_letter_builder.as_str()),
+        );
     }
     regex_str.push('$');
     Regex::new(&regex_str).map_err(|e| e.to_string())
@@ -143,56 +176,62 @@ fn validate_absent_letters(absent_letters: &str) -> Result<(), String> {
     Ok(())
 }
 
-
 mod tests {
     #[allow(unused_imports)]
     use super::*;
 
     #[test]
     fn test_single_letter_missing() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=t?e&absent_letters=").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=t?e&absent_letters=").unwrap();
         assert_eq!("the", result[0]["word"].to_string());
         assert_ne!(1, result.len());
     }
 
     #[test]
     fn test_single_letter_missing_and_not_the() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=t?e&absent_letters=h").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=t?e&absent_letters=h").unwrap();
         assert_eq!("tie", result[0]["word"].to_string());
         assert_ne!(1, result.len());
     }
 
     #[test]
     fn test_single_letter_missing_and_not_the_with_duplicate_absent_letters() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=t?e&absent_letters=ht").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=t?e&absent_letters=ht").unwrap();
         assert_eq!("tie", result[0]["word"].to_string());
         assert_ne!(1, result.len());
     }
 
     #[test]
     fn test_single_letter_missing_and_not_the_with_extra_duplicate_absent_letters() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=t?e&absent_letters=htht").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=t?e&absent_letters=htht").unwrap();
         assert_eq!("tie", result[0]["word"].to_string());
         assert_ne!(1, result.len());
     }
 
     #[test]
     fn test_no_letters_missing() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=is&absent_letters=").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=is&absent_letters=").unwrap();
         assert_eq!("is", result[0]["word"].to_string());
         assert_eq!(1, result.len());
     }
 
     #[test]
     fn test_no_letters_missing_with_absent_letters() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=is&absent_letters=abc").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=is&absent_letters=abc").unwrap();
         assert_eq!("is", result[0]["word"].to_string());
         assert_eq!(1, result.len());
     }
 
     #[test]
     fn test_all_results_right_length_and_descending_frequency() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=t???&absent_letters=h").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=t???&absent_letters=h").unwrap();
         let mut last_value: u64 = 1000000000000;
         assert!(result.len() > 3);
         for i in 0..result.len() {
@@ -207,56 +246,85 @@ mod tests {
 
     #[test]
     fn test_no_reuse_letters_in_pattern_for_wheeloffortune() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=t?e?&absent_letters=").unwrap();
-        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=t?e?&absent_letters=").unwrap();
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
         assert!(!words.contains(&"tree".to_string()));
     }
 
     #[test]
     fn test_reuse_letters_in_pattern_for_crossword() {
         let result = process_query_string("mode=Crossword&pattern=t?e?&absent_letters=").unwrap();
-        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
         assert!(words.contains(&"tree".to_string()));
     }
 
     #[test]
     fn test_apostrophe() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=c??'t&absent_letters=").unwrap();
-        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=c??'t&absent_letters=").unwrap();
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
         assert!(words.contains(&"can't".to_string()));
     }
 
     #[test]
     fn test_apostrophe_crossword() {
         let result = process_query_string("mode=Crossword&pattern=c??'t&absent_letters=").unwrap();
-        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
         assert!(words.contains(&"can't".to_string()));
     }
 
     #[test]
     fn test_apostrophe_not_filled_in() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=d???t&absent_letters=h").unwrap();
-        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=d???t&absent_letters=h").unwrap();
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
         assert!(!words.contains(&"don't".to_string()));
     }
 
     #[test]
     fn test_dash() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=n?n-?e??er&absent_letters=t").unwrap();
-        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=n?n-?e??er&absent_letters=t")
+                .unwrap();
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
         assert!(words.contains(&"non-ledger".to_string()));
     }
 
     #[test]
     fn test_dash_not_filled_in() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=n?n??e??er&absent_letters=t").unwrap();
-        let words = result.members().map(|x| x["word"].to_string()).collect::<Vec<String>>();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=n?n??e??er&absent_letters=t")
+                .unwrap();
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
         assert!(!words.contains(&"non-ledger".to_string()));
     }
 
     #[test]
     fn test_all_results_right_length_with_missing_first_letter() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=??i?&absent_letters=h").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=??i?&absent_letters=h").unwrap();
         assert!(result.len() > 3);
         for i in 0..result.len() {
             assert_eq!(4, result[i]["word"].to_string().len());
@@ -267,7 +335,8 @@ mod tests {
 
     #[test]
     fn test_giant_set_of_results_right_length_and_descending_frequency() {
-        let result = process_query_string("mode=WheelOfFortune&pattern=?????&absent_letters=hx").unwrap();
+        let result =
+            process_query_string("mode=WheelOfFortune&pattern=?????&absent_letters=hx").unwrap();
         let mut last_value: u64 = 1000000000000;
         assert!(result.len() > 3);
         for i in 0..result.len() {
