@@ -183,7 +183,7 @@ pub fn process_query_string(query: &str) -> Result<json::JsonValue, String> {
             let mut parts = line.split_ascii_whitespace();
             let word = parts.next().unwrap();
             if word_regex.is_match(word) {
-                if !(mode == PatternMode::Cryptogram && is_valid_string(&word, &pattern, &mode)) {
+                if !(mode == PatternMode::Cryptogram && !is_valid_string(&word, &pattern, &mode)) {
                     // TODO - use Object constructor
                     results.push(json::object! { "word" => word, "frequency" => parts.next().unwrap().parse::<u64>().unwrap() });
                 }
@@ -516,6 +516,13 @@ mod tests {
         let query = format!("mode=Cryptogram&pattern=ABC&absent_letters=ea");
         let result = process_query_string(&query).unwrap();
         assert_eq!("for", result[0]["word"].to_string());
+    }
+
+    #[test]
+    fn test_cryptogram_over_limit() {
+        let query = format!("mode=Cryptogram&pattern=ABCDEF&absent_letters=");
+        let result = process_query_string(&query).unwrap();
+        assert_eq!("should", result[0]["word"].to_string());
     }
 
     #[test]
