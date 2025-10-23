@@ -93,8 +93,8 @@ fn is_valid_string(s: &str, pattern: &str, mode: &PatternMode) -> bool {
     if mode == &PatternMode::Cryptogram {
         // the regex crate doesn't support backreferences, so make sure
         // that capital letters in the pattern match in the result string
-        // TODO - also make sure that no mappings are reused?
         let mut mappings: HashMap<char, char> = HashMap::new();
+        let mut lowercase_letters_used: HashSet<char> = HashSet::new();
         let s_chars = s.chars().collect::<Vec<_>>();
         for (i, pattern_char) in pattern.char_indices() {
             if pattern_char.is_ascii_uppercase() {
@@ -107,6 +107,11 @@ fn is_valid_string(s: &str, pattern: &str, mode: &PatternMode) -> bool {
                     }
                     std::collections::hash_map::Entry::Vacant(vacant_entry) => {
                         vacant_entry.insert(s_chars[i]);
+                        // make sure no mappings are reused
+                        if lowercase_letters_used.contains(&s_chars[i]) {
+                            return false;
+                        }
+                        lowercase_letters_used.insert(s_chars[i]);
                     }
                 }
             }
@@ -487,6 +492,11 @@ mod tests {
         let result = process_query_string(&query).unwrap();
         // can't be "the" because T can't map to t
         assert_eq!("and", result[0]["word"].to_string());
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
+        assert!(!words.contains(&"the".to_string()));
     }
 
     #[test]
@@ -509,6 +519,11 @@ mod tests {
         let result = process_query_string(&query).unwrap();
         // not "that" because t is already used
         assert_eq!("what", result[0]["word"].to_string());
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
+        assert!(!words.contains(&"that".to_string()));
     }
 
     #[test]
@@ -523,6 +538,19 @@ mod tests {
         let query = format!("mode=Cryptogram&pattern=ABCDEF&absent_letters=");
         let result = process_query_string(&query).unwrap();
         assert_eq!("should", result[0]["word"].to_string());
+    }
+
+    #[test]
+    fn test_cryptogram_do_not_double_assign_letters() {
+        let query = format!("mode=Cryptogram&pattern=scABCD&absent_letters=");
+        let result = process_query_string(&query).unwrap();
+        // not "school" because B and C can't map to o
+        assert_eq!("script", result[0]["word"].to_string());
+        let words = result
+            .members()
+            .map(|x| x["word"].to_string())
+            .collect::<Vec<String>>();
+        assert!(!words.contains(&"school".to_string()));
     }
 
     #[test]
