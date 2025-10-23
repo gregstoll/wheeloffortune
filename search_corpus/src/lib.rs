@@ -94,13 +94,15 @@ fn is_valid_string(s: &str, pattern: &str, mode: &PatternMode) -> bool {
         // the regex crate doesn't support backreferences, so make sure
         // that capital letters in the pattern match in the result string
         let mut mappings: Vec<(char, char)> = vec![];
-        let s_chars = s.chars().collect::<Vec<_>>();
-        for (i, pattern_char) in pattern.char_indices() {
+        //let s_chars = s.chars().collect::<Vec<_>>();
+        let mut s_chars = s.chars();
+        for (_i, pattern_char) in pattern.char_indices() {
+            let s_char = s_chars.next().unwrap();
             if pattern_char.is_ascii_uppercase() {
                 let mut found = false;
                 for entry in &mappings {
                     if entry.0 == pattern_char {
-                        if entry.1 != s_chars[i] {
+                        if entry.1 != s_char {
                             return false;
                         }
                         found = true;
@@ -109,11 +111,11 @@ fn is_valid_string(s: &str, pattern: &str, mode: &PatternMode) -> bool {
                 }
                 if !found {
                     for entry in &mappings {
-                        if entry.1 == s_chars[i] {
+                        if entry.1 == s_char {
                             return false;
                         }
                     }
-                    mappings.push((pattern_char, s_chars[i]));
+                    mappings.push((pattern_char, s_char));
                 }
             }
         }
