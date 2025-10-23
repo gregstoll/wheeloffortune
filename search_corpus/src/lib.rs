@@ -93,26 +93,27 @@ fn is_valid_string(s: &str, pattern: &str, mode: &PatternMode) -> bool {
     if mode == &PatternMode::Cryptogram {
         // the regex crate doesn't support backreferences, so make sure
         // that capital letters in the pattern match in the result string
-        let mut mappings: HashMap<char, char> = HashMap::new();
-        let mut lowercase_letters_used: HashSet<char> = HashSet::new();
+        let mut mappings: Vec<(char, char)> = vec![];
         let s_chars = s.chars().collect::<Vec<_>>();
         for (i, pattern_char) in pattern.char_indices() {
             if pattern_char.is_ascii_uppercase() {
-                let entry = mappings.entry(pattern_char);
-                match entry {
-                    std::collections::hash_map::Entry::Occupied(occupied_entry) => {
-                        if &s_chars[i] != occupied_entry.get() {
+                let mut found = false;
+                for entry in &mappings {
+                    if entry.0 == pattern_char {
+                        if entry.1 != s_chars[i] {
+                            return false;
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    for entry in &mappings {
+                        if entry.1 == s_chars[i] {
                             return false;
                         }
                     }
-                    std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-                        vacant_entry.insert(s_chars[i]);
-                        // make sure no mappings are reused
-                        if lowercase_letters_used.contains(&s_chars[i]) {
-                            return false;
-                        }
-                        lowercase_letters_used.insert(s_chars[i]);
-                    }
+                    mappings.push((pattern_char, s_chars[i]));
                 }
             }
         }
