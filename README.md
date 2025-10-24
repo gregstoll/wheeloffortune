@@ -1,7 +1,7 @@
 # wheeloffortune
 Solver for Wheel of Fortune game (and crosswords too!)
 
-See [a live demo here for Wheel of Fortune](https://gregstoll.com/wheeloffortune/) and [a live demo for crosswords](https://gregstoll.com/crossword/)!
+See [a live demo here for Wheel of Fortune](https://gregstoll.com/wheeloffortune/) and [a live demo for crosswords](https://gregstoll.com/crossword/) and [a live demo for cryptograms](https://gregstoll.com/cryptogram/)!
 
 The word list is taken from [Google Books Ngrams](https://storage.googleapis.com/books/ngrams/books/datasetsv3.html), specifically the 1-grams from the 20200217 release. The word list that the app uses is in [`data/processed/word_frequency.txt`](https://github.com/gregstoll/wheeloffortune/blob/main/data/processed/word_frequency.txt). If you want to generate it:
 - Create an empty directory under `data/raw`
