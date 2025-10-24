@@ -5,6 +5,7 @@ use fst::IntoStreamer;
 use memmap::Mmap;
 use regex::Regex;
 use regex_automata::dense;
+use smallvec::{smallvec, SmallVec};
 use std::{
     collections::{HashMap, HashSet},
     convert::TryFrom,
@@ -93,8 +94,7 @@ fn is_valid_string(s: &str, pattern: &str, mode: &PatternMode) -> bool {
     if mode == &PatternMode::Cryptogram {
         // the regex crate doesn't support backreferences, so make sure
         // that capital letters in the pattern match in the result string
-        let mut mappings: Vec<(char, char)> = vec![];
-        //let s_chars = s.chars().collect::<Vec<_>>();
+        let mut mappings: SmallVec<[(char, char); 20]> = smallvec![];
         let mut s_chars = s.chars();
         for (_i, pattern_char) in pattern.char_indices() {
             let s_char = s_chars.next().unwrap();
